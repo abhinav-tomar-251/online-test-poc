@@ -147,7 +147,44 @@ export default function TakeTest({ params }: { params: { testId: string } }) {
         );
         
       // Add more question types here
-        
+
+      // case QuestionType.Ranking:
+      //   return (
+      //     <RankingQuestionComponent
+      //       question={currentQuestion}
+      //       value={responses[currentQuestion.id] || []}
+      //       onChange={(value) => handleResponseChange(currentQuestion.id, value)}
+      //     />
+      //   );
+
+      // case QuestionType.Likert:
+      //   return (
+      //     <LikertQuestionComponent
+      //       question={currentQuestion}
+      //       value={responses[currentQuestion.id] || []}
+      //       onChange={(value) => handleResponseChange(currentQuestion.id, value)}
+      //     />
+      //   );
+
+      // case QuestionType.UploadFile:
+      //   return (
+      //     <UploadFileQuestionComponent
+      //       question={currentQuestion}
+      //       value={responses[currentQuestion.id] || []}
+      //       onChange={(value) => handleResponseChange(currentQuestion.id, value)}
+      //     />
+      //   );
+
+      // case QuestionType.NetPromoterScore:
+      //   return (
+      //     <NetPromoterScoreQuestionComponent
+      //       question={currentQuestion}
+      //       value={responses[currentQuestion.id] || 0}
+      //       onChange={(value) => handleResponseChange(currentQuestion.id, value)}
+      //     />
+      //   );
+
+      
       default:
         return (
           <div className="py-4 text-gray-500 italic">
@@ -507,3 +544,121 @@ function SectionComponent({
     </div>
   );
 } 
+
+// function RankingQuestionComponent({
+//   question,
+//   value,
+//   onChange,
+// }: {
+//   question: any;
+//   value: any;
+//   onChange: (value: any) => void;
+// }) {
+//   return (
+//     <div className="pt-4">
+//       <div className="flex flex-col items-center">
+//         {question.options.map((option: any) => (
+//           <div key={option.id} className="flex items-center">
+//             <input
+//               type="radio"
+//               id={option.id}
+//               name={question.id}  
+//               checked={value === option.id}
+//               onChange={() => onChange(option.id)}
+//               className="mr-3 h-4 w-4"
+//             />
+//             <label htmlFor={option.id} className="text-gray-700">
+//               {option.text}
+//             </label>
+//           </div>
+//         ))}
+//       </div>
+//     </div>
+//   );
+// }
+
+// function LikertQuestionComponent({
+//   question,
+//   value,
+//   onChange,
+// }: {
+//   question: any;
+//   value: any;
+//   onChange: (value: any) => void;
+// }) {
+//   return (
+//     <div className="pt-4">
+//       <div className="flex flex-col items-center">  
+//         {question.statements.map((statement: any) => (
+//           <div key={statement.id} className="flex items-center">
+//             <input
+//               type="radio"
+//               id={statement.id}
+//               name={question.id}    
+//               checked={value === statement.id}
+//               onChange={() => onChange(statement.id)}
+//               className="mr-3 h-4 w-4"
+//             />
+//             <label htmlFor={statement.id} className="text-gray-700">
+//               {statement.text}  
+//             </label>
+//           </div>
+//         ))}
+//       </div>
+//     </div>
+//   );
+// } 
+
+// function UploadFileQuestionComponent({
+//   question,
+//   value,
+//   onChange,
+// }: {
+//   question: any;
+//   value: any;
+//   onChange: (value: any) => void;
+// }) {
+//   return (
+//     <div className="pt-4">
+//       <div className="flex flex-col items-center">
+//         <input
+//           type="file"
+//           id={question.id}
+//           name={question.id}
+//           onChange={(e) => onChange(e.target.files?.[0])}
+//           className="hidden"
+//         />
+//         <label htmlFor={question.id} className="text-blue-600 hover:text-blue-800 cursor-pointer">
+//           {value ? value.name : "Upload File"}
+//         </label>
+//       </div>
+//     </div>
+//   );
+// }
+
+// function NetPromoterScoreQuestionComponent({
+//   question,
+//   value,
+//   onChange,
+// }: {
+//   question: any;
+//   value: number;
+//   onChange: (value: number) => void;
+// }) {
+//   return (
+//     <div className="pt-4">
+//       <div className="flex flex-col items-center">
+//         {question.labels?.start && (
+//           <span className="text-sm text-gray-500">{question.labels.start}</span>
+//         )}
+//         {question.labels?.end && (
+//           <span className="text-sm text-gray-500">{question.labels.end}</span>
+//         )}
+//       </div>
+//     </div>
+//   );
+// }
+
+
+
+

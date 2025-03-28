@@ -37,6 +37,8 @@ export interface TextQuestion extends BaseQuestion {
 export interface RatingQuestion extends BaseQuestion {
   type: QuestionType.Rating;
   maxRating: number;
+  minValue?: number;
+  maxValue?: number;
   labels?: { start?: string; end?: string };
 }
 
@@ -258,30 +260,52 @@ export const useTestStore = create<TestStore>((set, get) => ({
     }));
   },
   
-  updateQuestion: (testId: string, questionId: string, updates: Partial<Omit<Question, 'type'>>) => {
-    set((state) => ({
-      tests: state.tests.map((test) =>
-        test.id === testId
-          ? {
-              ...test,
-              questions: test.questions.map((q) =>
-                q.id === questionId ? { ...q, ...updates } : q
-              ),
-              updatedAt: new Date(),
-            }
-          : test
-      ),
-      activeTest:
-        state.activeTest?.id === testId
-          ? {
-              ...state.activeTest,
-              questions: state.activeTest.questions.map((q) =>
-                q.id === questionId ? { ...q, ...updates } : q
-              ),
-              updatedAt: new Date(),
-            }
-          : state.activeTest,
-    }));
+  updateQuestion: (testId: string, questionId: string, updates: Partial<Question>) => {
+    set((state) => {
+      const updateQuestionsInTest = (questions: Question[]): Question[] => {
+        return questions.map((q) => {
+          if (q.id !== questionId) return q;
+          
+          // Keep the question's original type
+          const updatedQuestion = { ...q, ...updates, type: q.type };
+          
+          // Ensure type safety based on the question type
+          switch (q.type) {
+            case QuestionType.Choice:
+              return updatedQuestion as ChoiceQuestion;
+            case QuestionType.Text:
+              return updatedQuestion as TextQuestion;
+            case QuestionType.Rating:
+              return updatedQuestion as RatingQuestion;
+            case QuestionType.Date:
+              return updatedQuestion as DateQuestion;
+            case QuestionType.Ranking:
+              return updatedQuestion as RankingQuestion;
+            case QuestionType.Likert:
+              return updatedQuestion as LikertQuestion;
+            case QuestionType.UploadFile:
+              return updatedQuestion as UploadFileQuestion;
+            case QuestionType.NetPromoterScore:
+              return updatedQuestion as NetPromoterScoreQuestion;
+            case QuestionType.Section:
+              return updatedQuestion as SectionQuestion;
+            default:
+              return q;
+          }
+        });
+      };
+
+      return {
+        tests: state.tests.map(test => 
+          test.id === testId 
+            ? { ...test, questions: updateQuestionsInTest(test.questions), updatedAt: new Date() } 
+            : test
+        ),
+        activeTest: state.activeTest?.id === testId
+          ? { ...state.activeTest, questions: updateQuestionsInTest(state.activeTest.questions), updatedAt: new Date() }
+          : state.activeTest
+      };
+    });
   },
 
   deleteQuestion: (testId, questionId) => {
