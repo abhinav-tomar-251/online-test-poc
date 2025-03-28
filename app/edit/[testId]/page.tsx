@@ -3,19 +3,21 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useTestStore, QuestionType, Question } from "@/lib/store";
-import { Button } from "@/app/components/ui/Button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/app/components/ui/Card";
+import { useTestStore, QuestionType, Question } from "@/app/shared/lib/store";
+import { Button } from "@/app/shared/components/ui/Button";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/app/shared/components/ui/Card";
 import { DndContext, DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import SortableQuestionItem from "../component/SortableQuestionItem";
 import QuestionTypeButton from "../component/QuestionTypeButton";
 import QuestionEditModal from "../component/QuestionEditModal";
+import * as React from "react";
 
-export default function EditTest({ params }: { params: { testId: string } }) {
+export default function EditTest({ params }: { params: any }) {
   const router = useRouter();
-  const { testId } = params;
+  const unwrappedParams = React.use(params) as { testId: string };
+  const testId = unwrappedParams.testId;
   const { tests, activeTest, setActiveTest, updateTest, addQuestion, deleteQuestion, updateQuestion, reorderQuestions } = useTestStore();
   const [showQuestionTypeModal, setShowQuestionTypeModal] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<string | null>(null);
@@ -28,7 +30,7 @@ export default function EditTest({ params }: { params: { testId: string } }) {
 
   if (!activeTest) {
     return (
-      <main className="container mx-auto py-10 px-4 sm:px-6 lg:px-8 min-h-screen">
+      <main className="container mx-auto py-6 sm:py-10 px-4 sm:px-6 lg:px-8 min-h-screen">
         <div className="text-center py-12">
           <h2 className="text-2xl font-medium mb-4">Test not found</h2>
           <p className="text-gray-500 mb-8">The test you're trying to edit doesn't exist.</p>
@@ -129,7 +131,7 @@ export default function EditTest({ params }: { params: { testId: string } }) {
     }
 
     addQuestion(testId, questionData);
-    // setShowQuestionTypeModal(false);
+    setShowQuestionTypeModal(false);
   };
 
   const handleDeleteQuestion = (questionId: string) => {
@@ -151,8 +153,8 @@ export default function EditTest({ params }: { params: { testId: string } }) {
   };
 
   return (
-    <main className="container mx-auto py-10 px-4 sm:px-6 lg:px-8 min-h-screen">
-        <div className="flex items-start justify-between mb-8">
+    <main className="container mx-auto py-6 sm:py-10 px-4 sm:px-6 lg:px-8 min-h-screen">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-6 sm:mb-8 gap-4 sm:gap-0">
           <div className="flex items-center">
             <Link href="/">
               <Button variant="ghost" size="sm">
@@ -162,118 +164,107 @@ export default function EditTest({ params }: { params: { testId: string } }) {
                 Back
               </Button>
             </Link>
-            <h1 className="text-2xl font-bold ml-8">Edit Test</h1>
+            <h1 className="text-xl sm:text-2xl font-bold ml-4 sm:ml-8">Edit Test</h1>
           </div>
           <Link href={`/preview/${testId}`}>
-            <Button variant="outline">Preview Test</Button>
+            <Button variant="outline" className="w-full sm:w-auto">Preview Test</Button>
           </Link>
         </div>
 
-        <div className="flex gap-6 justify-between items-center h-full mx-18">
-
-
+        <div className="flex flex-col lg:flex-row gap-6 justify-between h-full">
           {/* Question Type Modal */}
-          <aside className="w-1/3 shrink-0">
-          <div className="sticky top-4 left-4"> 
-            {/* Button To access Question type Modal */}
-            {showQuestionTypeModal ? (
-                <div className="absolute left-0"> 
-                  <Button 
-                    variant="primary" 
-                    className="flex w-10 h-10 rounded-full text-4xl justify-center items-center font-bold text-white" 
-                    onClick={() => setShowQuestionTypeModal(true)}
-                  >
-                    +
-                  </Button>
-                </div>
-            ) : (
+          <aside className="w-full lg:w-1/3 order-2 lg:order-1">
+            <div className="mb-6 lg:mb-0 lg:sticky lg:top-4"> 
+              {/* Button To access Question type Modal */}
               <Button 
                 variant="primary" 
-                
+                className="w-full sm:w-auto"
                 onClick={() => setShowQuestionTypeModal(true)}
               >
                 Add Question
               </Button>
-            )}
-          </div>
-            {showQuestionTypeModal && (
-              <div className="bg-white rounded-lg max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto mt-16">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold">Select Question Type</h3>
-                  <button 
-                    onClick={() => setShowQuestionTypeModal(false)}
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M18 6 6 18" />
-                      <path d="m6 6 12 12" />
-                    </svg>
-                  </button>
+              
+              {showQuestionTypeModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+                  <div className="bg-white rounded-lg max-w-3xl w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg sm:text-xl font-semibold">Select Question Type</h3>
+                      <button 
+                        onClick={() => setShowQuestionTypeModal(false)}
+                        className="text-gray-500 hover:text-gray-700"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M18 6 6 18" />
+                          <path d="m6 6 12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                      <QuestionTypeButton 
+                        title="Choice"
+                        description="Single or multiple choice questions"
+                        icon="◉"
+                        onClick={() => handleAddQuestion(QuestionType.Choice)}
+                      />
+                      <QuestionTypeButton 
+                        title="Text"
+                        description="Free-form text responses"
+                        icon="✏️"
+                        onClick={() => handleAddQuestion(QuestionType.Text)}
+                      />
+                      <QuestionTypeButton 
+                        title="Rating"
+                        description="Scale-based ratings"
+                        icon="★"
+                        onClick={() => handleAddQuestion(QuestionType.Rating)}
+                      />
+                      <QuestionTypeButton 
+                        title="Date"
+                        description="Date and time selection"
+                        icon="📅"
+                        onClick={() => handleAddQuestion(QuestionType.Date)}
+                      />
+                      <QuestionTypeButton 
+                        title="Ranking"
+                        description="Ordering items by preference"
+                        icon="↕️"
+                        onClick={() => handleAddQuestion(QuestionType.Ranking)}
+                      />
+                      <QuestionTypeButton 
+                        title="Likert"
+                        description="Agreement scale questions"
+                        icon="⚖️"
+                        onClick={() => handleAddQuestion(QuestionType.Likert)}
+                      />
+                      <QuestionTypeButton 
+                        title="Upload File"
+                        description="File upload responses"
+                        icon="📎"
+                        onClick={() => handleAddQuestion(QuestionType.UploadFile)}
+                      />
+                      <QuestionTypeButton 
+                        title="Net Promoter Score"
+                        description="Measure customer loyalty"
+                        icon="📊"
+                        onClick={() => handleAddQuestion(QuestionType.NetPromoterScore)}
+                      />
+                      <QuestionTypeButton 
+                        title="Section"
+                        description="Organize questions into groups"
+                        icon="📑"
+                        onClick={() => handleAddQuestion(QuestionType.Section)}
+                      />
+                    </div>
+                  </div>
                 </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <QuestionTypeButton 
-                    title="Choice"
-                    description="Single or multiple choice questions"
-                    icon="◉"
-                    onClick={() => handleAddQuestion(QuestionType.Choice)}
-                  />
-                  <QuestionTypeButton 
-                    title="Text"
-                    description="Free-form text responses"
-                    icon="✏️"
-                    onClick={() => handleAddQuestion(QuestionType.Text)}
-                  />
-                  <QuestionTypeButton 
-                    title="Rating"
-                    description="Scale-based ratings"
-                    icon="★"
-                    onClick={() => handleAddQuestion(QuestionType.Rating)}
-                  />
-                  <QuestionTypeButton 
-                    title="Date"
-                    description="Date and time selection"
-                    icon="📅"
-                    onClick={() => handleAddQuestion(QuestionType.Date)}
-                  />
-                  <QuestionTypeButton 
-                    title="Ranking"
-                    description="Ordering items by preference"
-                    icon="↕️"
-                    onClick={() => handleAddQuestion(QuestionType.Ranking)}
-                  />
-                  <QuestionTypeButton 
-                    title="Likert"
-                    description="Agreement scale questions"
-                    icon="⚖️"
-                    onClick={() => handleAddQuestion(QuestionType.Likert)}
-                  />
-                  <QuestionTypeButton 
-                    title="Upload File"
-                    description="File upload responses"
-                    icon="📎"
-                    onClick={() => handleAddQuestion(QuestionType.UploadFile)}
-                  />
-                  <QuestionTypeButton 
-                    title="Net Promoter Score"
-                    description="Measure customer loyalty"
-                    icon="📊"
-                    onClick={() => handleAddQuestion(QuestionType.NetPromoterScore)}
-                  />
-                  <QuestionTypeButton 
-                    title="Section"
-                    description="Organize questions into groups"
-                    icon="📑"
-                    onClick={() => handleAddQuestion(QuestionType.Section)}
-                  />
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </aside>
           
-          <div className="flex-1  min-w-2xl">
+          <div className="flex-1 order-1 lg:order-2">
             {/* Simplified Test Details Card */}
-            <div className="max-w-4xl mx-auto mb-8">
+            <div className="mb-6 sm:mb-8">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div>
@@ -299,22 +290,22 @@ export default function EditTest({ params }: { params: { testId: string } }) {
             {editingTestDetails && (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">  
                 {/* Test Details Card */}
-                <Card className="mb-8 max-w-2xl w-full p-6">
+                <Card className="max-w-2xl w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
                   <CardHeader>
-                  <div className="flex justify-between items-center mb-4">
-                    <CardTitle>Test Details</CardTitle>
-                    <button 
-                      onClick={() => setEditingTestDetails(false)}
-                      className="text-gray-500 hover:text-gray-700"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M18 6 6 18" />
-                        <path d="m6 6 12 12" />
-                      </svg>
-                    </button>
-                  </div>
+                    <div className="flex justify-between items-center mb-4">
+                      <CardTitle>Test Details</CardTitle>
+                      <button 
+                        onClick={() => setEditingTestDetails(false)}
+                        className="text-gray-500 hover:text-gray-700"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M18 6 6 18" />
+                          <path d="m6 6 12 12" />
+                        </svg>
+                      </button>
+                    </div>
                   </CardHeader>
-                  <CardContent className="space-y-6">
+                  <CardContent className="space-y-4 sm:space-y-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="title">
                         Test Title
@@ -342,7 +333,7 @@ export default function EditTest({ params }: { params: { testId: string } }) {
                     </div>
                   </CardContent>
                   <CardFooter>
-                    <Button variant="primary" onClick={() => setEditingTestDetails(false)}>
+                    <Button variant="primary" onClick={() => setEditingTestDetails(false)} className="w-full sm:w-auto">
                       Save Changes
                     </Button>
                   </CardFooter>
@@ -351,14 +342,15 @@ export default function EditTest({ params }: { params: { testId: string } }) {
             )}
 
             {/* Questions View Section */}
-            <div className="mb-8 bg-gray-600 rounded-lg p-6 min-h-[500px]">
+            <div className="bg-gray-600 rounded-lg p-4 sm:p-6 min-h-[300px] sm:min-h-[500px]">
               {activeTest.questions.length === 0 ? (
-                <div className="text-center py-12 bg-gray-50 rounded-lg">
-                  <h3 className="text-xl font-medium text-gray-500">No questions yet</h3>
+                <div className="text-center py-8 sm:py-12 bg-gray-50 rounded-lg">
+                  <h3 className="text-lg sm:text-xl font-medium text-gray-500">No questions yet</h3>
                   <p className="text-gray-400 mt-2 mb-4">Add your first question to get started</p>
                   <Button 
                     variant="primary" 
                     onClick={() => setShowQuestionTypeModal(true)}
+                    className="w-full sm:w-auto"
                   >
                     Add Question
                   </Button>
@@ -369,7 +361,7 @@ export default function EditTest({ params }: { params: { testId: string } }) {
                     items={activeTest.questions.map(q => q.id)} 
                     strategy={verticalListSortingStrategy}
                   >
-                    <div className="space-y-4">
+                    <div className="space-y-3 sm:space-y-4">
                       {activeTest.questions.map((question) => (
                         <SortableQuestionItem
                           key={question.id}

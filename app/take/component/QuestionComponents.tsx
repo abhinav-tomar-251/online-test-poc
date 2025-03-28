@@ -172,6 +172,8 @@ question: any;
 value: string[];
 onChange: (value: string[]) => void;
 }) {
+const [draggedItem, setDraggedItem] = useState<number | null>(null);
+
 useEffect(() => {
     if (!value || value.length === 0) {
     onChange([...question.options.map((o: any) => o.id)]);
@@ -185,40 +187,97 @@ const moveItem = (fromIndex: number, toIndex: number) => {
     onChange(newOrder);
 };
 
+const handleDragStart = (index: number) => {
+    setDraggedItem(index);
+};
+
+const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    
+    const draggedOverItem = document.querySelector(`[data-index="${index}"]`);
+    if (draggedOverItem) {
+    draggedOverItem.classList.add('bg-blue-50', 'border-blue-300');
+    }
+};
+
+const handleDragLeave = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    
+    const draggedOverItem = document.querySelector(`[data-index="${index}"]`);
+    if (draggedOverItem) {
+    draggedOverItem.classList.remove('bg-blue-50', 'border-blue-300');
+    }
+};
+
+const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    
+    const draggedOverItem = document.querySelector(`[data-index="${dropIndex}"]`);
+    if (draggedOverItem) {
+    draggedOverItem.classList.remove('bg-blue-50', 'border-blue-300');
+    }
+    
+    if (draggedItem !== null && draggedItem !== dropIndex) {
+    moveItem(draggedItem, dropIndex);
+    setDraggedItem(null);
+    }
+};
+
+const handleDragEnd = () => {
+    setDraggedItem(null);
+    // Remove any lingering highlight classes
+    document.querySelectorAll('.bg-blue-50, .border-blue-300').forEach(el => {
+    el.classList.remove('bg-blue-50', 'border-blue-300');
+    });
+};
+
 return (
     <div className="space-y-2 pt-4">
-    <p className="text-sm text-gray-500 mb-2">Drag to reorder options</p>
+    <p className="text-sm text-gray-500 mb-2">Drag to reorder options or use the arrow buttons</p>
     {value.map((optionId, index) => {
         const option = question.options.find((o: any) => o.id === optionId);
         return (
         <div 
             key={optionId} 
-            className="flex items-center bg-white p-3 rounded border border-gray-200 shadow-sm"
+            data-index={index}
+            draggable
+            onDragStart={() => handleDragStart(index)}
+            onDragOver={(e) => handleDragOver(e, index)}
+            onDragLeave={(e) => handleDragLeave(e, index)}
+            onDrop={(e) => handleDrop(e, index)}
+            onDragEnd={handleDragEnd}
+            className="flex items-center bg-white p-3 rounded border border-gray-200 shadow-sm transition-colors cursor-grab"
         >
             <span className="mr-3 w-6 h-6 flex items-center justify-center bg-gray-100 rounded-full text-gray-500 font-medium">
                 {index + 1}
             </span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2 text-gray-400">
+                <circle cx="8" cy="8" r="1"/>
+                <circle cx="8" cy="16" r="1"/>
+                <circle cx="16" cy="8" r="1"/>
+                <circle cx="16" cy="16" r="1"/>
+            </svg>
             <span className="flex-grow">{option?.text}</span>
             <div className="flex">
                 <button
-                    type="button"
-                    onClick={() => index > 0 && moveItem(index, index - 1)}
-                    disabled={index === 0}
-                    className={`p-1 mr-1 rounded ${index === 0 ? 'text-gray-300' : 'text-gray-500 hover:bg-gray-100'}`}
+                type="button"
+                onClick={() => index > 0 && moveItem(index, index - 1)}
+                disabled={index === 0}
+                className={`p-1 mr-1 rounded ${index === 0 ? 'text-gray-300' : 'text-gray-500 hover:bg-gray-100'}`}
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="m18 15-6-6-6 6"/>
-                    </svg>
+                </svg>
                 </button>
                 <button
-                    type="button"
-                    onClick={() => index < value.length - 1 && moveItem(index, index + 1)}
-                    disabled={index === value.length - 1}
-                    className={`p-1 rounded ${index === value.length - 1 ? 'text-gray-300' : 'text-gray-500 hover:bg-gray-100'}`}
+                type="button"
+                onClick={() => index < value.length - 1 && moveItem(index, index + 1)}
+                disabled={index === value.length - 1}
+                className={`p-1 rounded ${index === value.length - 1 ? 'text-gray-300' : 'text-gray-500 hover:bg-gray-100'}`}
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="m6 9 6 6 6-6"/>
-                    </svg>
+                </svg>
                 </button>
             </div>
         </div>

@@ -2,15 +2,14 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { useTestStore } from "@/lib/store";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./components/ui/Card";
-import { Button } from "./components/ui/Button";
+import { useTestStore } from "@/app/shared/lib/store";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./shared/components/ui/Card";
+import { Button } from "./shared/components/ui/Button";
 
 export default function Home() {
   const { tests, setActiveTest } = useTestStore();
 
   useEffect(() => {
-    // Clear active test when navigating to homepage
     setActiveTest(null);
   }, [setActiveTest]);
 
@@ -49,7 +48,7 @@ export default function Home() {
                     {test.questions.length} question{test.questions.length !== 1 ? "s" : ""}
                   </p>
                   <p className="text-xs text-gray-400 mt-1">
-                    Created: {new Date(test.createdAt).toLocaleDateString()}
+                    Created: {new Date(test.createdAt).toISOString().split('T')[0]}
                   </p>
                 </CardContent>
                 <CardFooter className="flex justify-between">

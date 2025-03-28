@@ -1,4 +1,4 @@
-import { Question, QuestionType } from "@/lib/store";
+import { Question, QuestionType } from "@/app/shared/lib/store";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
@@ -36,32 +36,34 @@ export default function SortableQuestionItem({
         style={style} 
         className="border border-gray-200 rounded-lg bg-white shadow-sm"
       >
-        <div className="p-4">
-          <div className="flex items-center justify-between">
+        <div className="p-3 sm:p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
             <div className="flex items-center">
               <div 
                 {...attributes} 
                 {...listeners}
-                className="flex items-center justify-center w-8 h-8 mr-3 cursor-move text-gray-400 hover:text-gray-600"
+                className="flex items-center justify-center w-8 h-8 mr-2 sm:mr-3 cursor-move text-gray-400 hover:text-gray-600"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="4" x2="20" y1="9" y2="9" />
                   <line x1="4" x2="20" y1="15" y2="15" />
                 </svg>
               </div>
-              <div className="flex items-center">
-                <span className="text-xl mr-3">{questionTypeIcons[question.type]}</span>
-                <div>
-                  <h3 className="font-medium">{question.title || "Untitled Question"}</h3>
-                  <span className="text-xs text-gray-500 capitalize">{question.type}</span>
-                  {question.required && <span className="text-xs text-red-500 ml-2">Required</span>}
+              <div className="flex items-center overflow-hidden">
+                <span className="text-xl mr-2 sm:mr-3 flex-shrink-0">{questionTypeIcons[question.type]}</span>
+                <div className="min-w-0">
+                  <h3 className="font-medium text-sm sm:text-base truncate">{question.title || "Untitled Question"}</h3>
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <span className="text-xs text-gray-500 capitalize">{question.type}</span>
+                    {question.required && <span className="text-xs text-red-500">Required</span>}
+                  </div>
                 </div>
               </div>
             </div>
-            <div className="flex space-x-2">
+            <div className="flex space-x-2 ml-auto sm:ml-0">
               <button
                 onClick={onEdit}
-                className="p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-50 rounded"
+                className="p-1.5 sm:p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-50 rounded"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
@@ -70,7 +72,7 @@ export default function SortableQuestionItem({
               </button>
               <button
                 onClick={onDelete}
-                className="p-2 text-gray-600 hover:text-red-600 hover:bg-gray-50 rounded"
+                className="p-1.5 sm:p-2 text-gray-600 hover:text-red-600 hover:bg-gray-50 rounded"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M3 6h18" />

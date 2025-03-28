@@ -20,11 +20,12 @@ export interface BaseQuestion {
   type: QuestionType;
   title: string;
   required: boolean;
+  score?: number; // Maximum score for this question
 }
 
 export interface ChoiceQuestion extends BaseQuestion {
   type: QuestionType.Choice;
-  options: { id: string; text: string }[];
+  options: { id: string; text: string; correct?: boolean }[];
   allowMultiple: boolean;
 }
 
@@ -99,12 +100,15 @@ export interface Test {
 export interface QuestionResponse {
   questionId: string;
   value: any;
+  score?: number; // Score awarded for this response
 }
 
 export interface TestResponse {
   id: string;
   testId: string;
   responses: QuestionResponse[];
+  totalScore?: number; // Total score for this test response
+  maxPossibleScore?: number; // Maximum possible score for this test
   submittedAt: Date;
 }
 
@@ -129,12 +133,14 @@ interface TestStore {
   // Response actions
   saveResponse: (testId: string, responses: QuestionResponse[]) => TestResponse;
   getResponsesForTest: (testId: string) => TestResponse[];
+  // New scoring methods
+  calculateScore: (testId: string, responses: QuestionResponse[]) => { totalScore: number, maxPossibleScore: number };
 }
 
 // Mock data for tests
 const mockTests: Test[] = [
   {
-    id: uuidv4(),
+    id: "4a5202a1-5f60-4b91-a7d1-b841211df741",
     title: 'JavaScript Knowledge Assessment',
     description: 'Test your knowledge of JavaScript fundamentals',
     questions: [
@@ -153,10 +159,11 @@ const mockTests: Test[] = [
         options: [
           { id: uuidv4(), text: 'String' },
           { id: uuidv4(), text: 'Boolean' },
-          { id: uuidv4(), text: 'Float' },
+          { id: uuidv4(), text: 'Float', correct: true }, // Correct answer
           { id: uuidv4(), text: 'Symbol' },
         ],
         allowMultiple: false,
+        score: 10, // Worth 10 points
       },
       {
         id: uuidv4(),
@@ -164,6 +171,7 @@ const mockTests: Test[] = [
         title: 'Explain the concept of closures in JavaScript',
         required: true,
         placeholder: 'Type your answer here...',
+        score: 15, // Worth 15 points
       },
       {
         id: uuidv4(),
@@ -368,6 +376,82 @@ export const useTestStore = create<TestStore>((set, get) => ({
   },
   
   saveResponse: (testId, responses) => {
+    const test = get().tests.find(t => t.id === testId);
+    
+    if (test) {
+      const scoredResponses = responses.map(response => {
+        const question = test.questions.find(q => q.id === response.questionId);
+        if (!question || question.score === undefined) return response;
+        
+        let score = 0;
+        
+        switch (question.type) {
+          case QuestionType.Choice:
+            if (question.allowMultiple) {
+              // For multiple choice, calculate partial credit
+              const correctOptions = question.options.filter(o => o.correct);
+              const selectedCorrect = question.options
+                .filter(o => o.correct && response.value.includes(o.id))
+                .length;
+              const selectedIncorrect = response.value
+                .filter((id: string) => !question.options.find(o => o.id === id)?.correct)
+                .length;
+              
+              // Calculate score based on correct selections and penalties for incorrect ones
+              if (correctOptions.length > 0) {
+                const rawScore = (selectedCorrect / correctOptions.length) * question.score;
+                // Apply penalty for incorrect selections (optional)
+                score = Math.max(0, rawScore - (selectedIncorrect * (question.score / correctOptions.length / 2)));
+              }
+            } else {
+              // For single choice, it's all or nothing
+              const selectedOption = question.options.find(o => o.id === response.value);
+              if (selectedOption?.correct) {
+                score = question.score;
+              }
+            }
+            break;
+            
+          case QuestionType.Rating:
+          case QuestionType.NetPromoterScore:
+            // Could be scored based on specific values or ranges
+            // For now, we'll just use a simple approach - higher rating = higher score
+            if (typeof response.value === 'number') {
+              const maxRating = question.type === QuestionType.Rating ? question.maxRating : 10;
+              score = (response.value / maxRating) * question.score;
+            }
+            break;
+            
+          // Additional question type scoring could be added here
+          default:
+            // For other question types, no automatic scoring
+            score = 0;
+        }
+        
+        return {
+          ...response,
+          score
+        };
+      });
+      
+      const { totalScore, maxPossibleScore } = get().calculateScore(testId, scoredResponses);
+      
+      const newResponse: TestResponse = {
+        id: uuidv4(),
+        testId,
+        responses: scoredResponses,
+        totalScore,
+        maxPossibleScore,
+        submittedAt: new Date(),
+      };
+      
+      set((state) => ({
+        responses: [...state.responses, newResponse],
+      }));
+      
+      return newResponse;
+    }
+    
     const newResponse: TestResponse = {
       id: uuidv4(),
       testId,
@@ -384,5 +468,25 @@ export const useTestStore = create<TestStore>((set, get) => ({
   
   getResponsesForTest: (testId) => {
     return get().responses.filter((response) => response.testId === testId);
+  },
+  
+  calculateScore: (testId, responses) => {
+    const test = get().tests.find((t) => t.id === testId);
+    if (!test) return { totalScore: 0, maxPossibleScore: 0 };
+    
+    let totalScore = 0;
+    let maxPossibleScore = 0;
+    
+    for (const response of responses) {
+      const question = test.questions.find((q) => q.id === response.questionId);
+      if (question) {
+        const score = question.score || 0;
+        const responseScore = response.score || 0;
+        totalScore += responseScore;
+        maxPossibleScore += score;
+      }
+    }
+    
+    return { totalScore, maxPossibleScore };
   },
 }));

@@ -1,5 +1,5 @@
-import { Button } from "@/app/components/ui/Button";
-import { QuestionType, useTestStore } from "@/lib/store";
+import { Button } from "@/app/shared/components/ui/Button";
+import { QuestionType, useTestStore } from "@/app/shared/lib/store";
 
 export default function QuestionEditModal({ 
     questionId, 
@@ -23,13 +23,34 @@ export default function QuestionEditModal({
       updateQuestion(testId, questionId, { title: e.target.value });
     };
     
-    const handleUpdateChoiceOption = (optionId: string, text: string) => {
+    const handleUpdateChoiceOption = (optionId: string, updates: { text?: string; correct?: boolean }) => {
       if (question.type !== QuestionType.Choice) return;
       updateQuestion(testId, questionId, {
         options: question.options.map(opt => 
-          opt.id === optionId ? { ...opt, text } : opt
+          opt.id === optionId ? { ...opt, ...updates } : opt
         )
       });
+    };
+    
+    const handleToggleCorrect = (optionId: string) => {
+      if (question.type !== QuestionType.Choice) return;
+      
+      // Find the option
+      const option = question.options.find(opt => opt.id === optionId);
+      if (!option) return;
+      
+      // For single choice, unmark all other options as correct
+      if (!question.allowMultiple) {
+        updateQuestion(testId, questionId, {
+          options: question.options.map(opt => ({
+            ...opt,
+            correct: opt.id === optionId
+          }))
+        });
+      } else {
+        // For multiple choice, just toggle this option
+        handleUpdateChoiceOption(optionId, { correct: !option.correct });
+      }
     };
     
     const handleAddChoiceOption = () => {
@@ -99,13 +120,27 @@ export default function QuestionEditModal({
               
               <div>
                 <h4 className="font-medium mb-2">Options</h4>
+                <p className="text-sm text-gray-500 mb-2">
+                  {question.allowMultiple 
+                    ? "Check the boxes next to correct answers (multiple can be selected)" 
+                    : "Check the box next to the correct answer"}
+                </p>
                 <div className="space-y-2">
                   {question.options.map((option) => (
                     <div key={option.id} className="flex items-center">
+                      <div className="mr-2">
+                        <input
+                          type="checkbox"
+                          id={`correct-${option.id}`}
+                          checked={option.correct || false}
+                          onChange={() => handleToggleCorrect(option.id)}
+                          className="h-4 w-4 border-gray-300 rounded text-blue-500 focus:ring-blue-500"
+                        />
+                      </div>
                       <input
                         type="text"
                         value={option.text}
-                        onChange={(e) => handleUpdateChoiceOption(option.id, e.target.value)}
+                        onChange={(e) => handleUpdateChoiceOption(option.id, { text: e.target.value })}
                         className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 flex-grow"
                       />
                       <button 
@@ -458,10 +493,10 @@ export default function QuestionEditModal({
     };
     
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div className="bg-white rounded-lg max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-semibold">Edit Question</h3>
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
+        <div className="bg-white rounded-lg max-w-3xl w-full p-3 sm:p-6 max-h-[90vh] overflow-y-auto">
+          <div className="flex justify-between items-center mb-3 sm:mb-4">
+            <h3 className="text-lg sm:text-xl font-semibold">Edit Question</h3>
             <button 
               onClick={onClose}
               className="text-gray-500 hover:text-gray-700"
@@ -473,7 +508,7 @@ export default function QuestionEditModal({
             </button>
           </div>
           
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="questionTitle">
                 Question Text
@@ -499,10 +534,31 @@ export default function QuestionEditModal({
               <label htmlFor="required">Required question</label>
             </div>
             
+            {/*score field for all question types except Section and Net Promoter Score*/}
+            {question.type !== QuestionType.Section && question.type !== QuestionType.NetPromoterScore && (
+              <div className="mt-3 sm:mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="questionScore">
+                  Score
+                </label>
+                <input
+                  id="questionScore"
+                  type="number"
+                  value={question.score || 0}
+                  onChange={(e) => updateQuestion(testId, questionId, { score: parseInt(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Maximum points for this question"
+                  min="0"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Set to 0 for unscored questions
+                </p>
+              </div>
+            )}
+            
             {renderQuestionFields()}
             
-            <div className="pt-4 flex justify-end">
-              <Button variant="primary" onClick={onClose}>
+            <div className="pt-3 sm:pt-4 flex justify-end">
+              <Button variant="primary" onClick={onClose} className="w-full sm:w-auto">
                 Done
               </Button>
             </div>

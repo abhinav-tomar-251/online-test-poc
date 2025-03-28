@@ -1,4 +1,4 @@
-import { QuestionType } from "@/lib/store";
+import { QuestionType } from "@/app/shared/lib/store";
 
 export default function renderQuestionPreview(question: any) {
     switch (question.type) {

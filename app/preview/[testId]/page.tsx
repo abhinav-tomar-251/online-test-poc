@@ -2,13 +2,15 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { useTestStore, QuestionType } from "@/lib/store";
-import { Button } from "@/app/components/ui/Button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/app/components/ui/Card";
+import { useTestStore, QuestionType } from "@/app/shared/lib/store";
+import { Button } from "@/app/shared/components/ui/Button";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/app/shared/components/ui/Card";
 import renderQuestionPreview from "../component/RenderQuestionPreview";
+import * as React from "react";
 
-export default function PreviewTest({ params }: { params: { testId: string } }) {
-  const { testId } = params;
+export default function PreviewTest({ params }: { params: any }) {
+  const unwrappedParams = React.use(params) as { testId: string };
+  const testId = unwrappedParams.testId;
   const { setActiveTest, activeTest } = useTestStore();
 
   useEffect(() => {

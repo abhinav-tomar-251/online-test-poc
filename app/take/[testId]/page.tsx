@@ -3,14 +3,16 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useTestStore, QuestionType, Question, QuestionResponse } from "@/lib/store";
-import { Button } from "@/app/components/ui/Button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/app/components/ui/Card";
+import { useTestStore, QuestionType, Question, QuestionResponse } from "@/app/shared/lib/store";
+import { Button } from "@/app/shared/components/ui/Button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/app/shared/components/ui/Card";
 import { ChoiceQuestionComponent, DateQuestionComponent, LikertQuestionComponent, NetPromoterScoreComponent, RankingQuestionComponent, RatingQuestionComponent, SectionComponent, TextQuestionComponent, UploadFileQuestionComponent } from "../component/QuestionComponents";
+import * as React from "react";
 
-export default function TakeTest({ params }: { params: { testId: string } }) {
+export default function TakeTest({ params }: { params: any }) {
   const router = useRouter();
-  const { testId } = params;
+  const unwrappedParams = React.use(params) as { testId: string };
+  const testId = unwrappedParams.testId;
   const { tests, setActiveTest, activeTest, saveResponse } = useTestStore();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [responses, setResponses] = useState<{ [key: string]: any }>({});
@@ -47,7 +49,6 @@ export default function TakeTest({ params }: { params: { testId: string } }) {
       [questionId]: value,
     }));
     
-    // Clear validation error if value is provided
     if (value !== undefined && value !== null && value !== "") {
       setValidationErrors((prev) => {
         const newErrors = { ...prev };
@@ -200,6 +201,10 @@ export default function TakeTest({ params }: { params: { testId: string } }) {
   };
 
   if (submitted) {
+    const response = useTestStore.getState().responses.slice(-1)[0]; // Get the most recent response
+    const hasScore = response?.totalScore !== undefined && response?.maxPossibleScore !== undefined;
+    const scorePercentage = hasScore ? Math.round((response.totalScore! / response.maxPossibleScore!) * 100) : 0;
+    
     return (
       <main className="container mx-auto py-10 px-4 sm:px-6 lg:px-8 min-h-screen">
         <div className="max-w-3xl mx-auto">
@@ -224,6 +229,39 @@ export default function TakeTest({ params }: { params: { testId: string } }) {
                 </svg>
               </div>
               <p className="text-xl font-medium mb-2">Thank you for completing the test!</p>
+              
+              {hasScore && (
+                <div className="my-6">
+                  <div className="text-3xl font-bold mb-1">
+                    {response.totalScore} / {response.maxPossibleScore} points
+                  </div>
+                  <div className="text-lg mb-4">
+                    {scorePercentage}% Score
+                  </div>
+                  
+                  <div className="w-full bg-gray-200 rounded-full h-4 mb-6">
+                    <div
+                      className={`h-4 rounded-full ${
+                        scorePercentage >= 70 
+                          ? 'bg-green-500' 
+                          : scorePercentage >= 40 
+                            ? 'bg-yellow-500' 
+                            : 'bg-red-500'
+                      }`}
+                      style={{ width: `${scorePercentage}%` }}
+                    ></div>
+                  </div>
+                  
+                  <p className="text-gray-600 mb-4">
+                    {scorePercentage >= 70 
+                      ? 'Great job! You performed very well on this test.' 
+                      : scorePercentage >= 40 
+                        ? 'Good effort! There is still room for improvement.' 
+                        : 'You might want to review the material and try again.'}
+                  </p>
+                </div>
+              )}
+              
               <p className="text-gray-500 mb-8">Your responses have been recorded.</p>
               <Link href="/">
                 <Button variant="primary">Return to Home</Button>
@@ -350,19 +388,19 @@ export default function TakeTest({ params }: { params: { testId: string } }) {
 
   return (
     <main className="container mx-auto py-10 px-4 sm:px-6 lg:px-8 min-h-screen">
+      <div className="flex items-start mb-10">
+        <Link href="/">
+          <Button variant="ghost" size="sm">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+              <path d="m15 18-6-6 6-6" />
+            </svg>
+            Exit
+          </Button>
+        </Link>
+        <h1 className="text-2xl font-bold ml-8">{activeTest.title}</h1>
+      </div>
       <div className="max-w-3xl mx-auto">
         <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center">
-            <Link href="/">
-              <Button variant="ghost" size="sm">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
-                  <path d="m15 18-6-6 6-6" />
-                </svg>
-                Exit
-              </Button>
-            </Link>
-            <h1 className="text-2xl font-bold ml-2">{activeTest.title}</h1>
-          </div>
           <div className="text-sm font-medium">
             Question {currentQuestionIndex + 1} of {questions.length}
           </div>
