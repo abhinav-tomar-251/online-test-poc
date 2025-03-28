@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useTestStore, QuestionType, Question, QuestionResponse } from "@/lib/store";
 import { Button } from "@/app/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/app/components/ui/Card";
+import { ChoiceQuestionComponent, DateQuestionComponent, LikertQuestionComponent, NetPromoterScoreComponent, RankingQuestionComponent, RatingQuestionComponent, SectionComponent, TextQuestionComponent, UploadFileQuestionComponent } from "../component/QuestionComponents";
 
 export default function TakeTest({ params }: { params: { testId: string } }) {
   const router = useRouter();
@@ -69,6 +70,14 @@ export default function TakeTest({ params }: { params: { testId: string } }) {
       return false;
     }
     
+    if (currentQuestion.type === QuestionType.Choice && Array.isArray(response) && response.length === 0) {
+      setValidationErrors((prev) => ({
+        ...prev,
+        [currentQuestion.id]: "This question is required",
+      }));
+      return false;
+    }
+    
     return true;
   };
 
@@ -87,7 +96,6 @@ export default function TakeTest({ params }: { params: { testId: string } }) {
   };
 
   const handleSubmit = () => {
-    // Convert responses object to array format for store
     const responseArray: QuestionResponse[] = Object.entries(responses).map(
       ([questionId, value]) => ({
         questionId,
@@ -107,7 +115,7 @@ export default function TakeTest({ params }: { params: { testId: string } }) {
         return (
           <ChoiceQuestionComponent
             question={currentQuestion}
-            value={responses[currentQuestion.id] || []}
+            value={responses[currentQuestion.id] || (currentQuestion.allowMultiple ? [] : "")}
             onChange={(value) => handleResponseChange(currentQuestion.id, value)}
           />
         );
@@ -139,52 +147,49 @@ export default function TakeTest({ params }: { params: { testId: string } }) {
           />
         );
         
+      case QuestionType.Ranking:
+        return (
+          <RankingQuestionComponent
+            question={currentQuestion}
+            value={responses[currentQuestion.id] || []}
+            onChange={(value) => handleResponseChange(currentQuestion.id, value)}
+          />
+        );
+
+      case QuestionType.Likert:
+        return (
+          <LikertQuestionComponent
+            question={currentQuestion}
+            value={responses[currentQuestion.id] || {}}
+            onChange={(value) => handleResponseChange(currentQuestion.id, value)}
+          />
+        );
+
+      case QuestionType.UploadFile:
+        return (
+          <UploadFileQuestionComponent
+            question={currentQuestion}
+            value={responses[currentQuestion.id] || null}
+            onChange={(value) => handleResponseChange(currentQuestion.id, value)}
+          />
+        );
+
+      case QuestionType.NetPromoterScore:
+        return (
+          <NetPromoterScoreComponent
+            question={currentQuestion}
+            value={responses[currentQuestion.id] || 0}
+            onChange={(value) => handleResponseChange(currentQuestion.id, value)}
+          />
+        );
+        
       case QuestionType.Section:
         return (
           <SectionComponent
             question={currentQuestion}
           />
         );
-        
-      // Add more question types here
 
-      // case QuestionType.Ranking:
-      //   return (
-      //     <RankingQuestionComponent
-      //       question={currentQuestion}
-      //       value={responses[currentQuestion.id] || []}
-      //       onChange={(value) => handleResponseChange(currentQuestion.id, value)}
-      //     />
-      //   );
-
-      // case QuestionType.Likert:
-      //   return (
-      //     <LikertQuestionComponent
-      //       question={currentQuestion}
-      //       value={responses[currentQuestion.id] || []}
-      //       onChange={(value) => handleResponseChange(currentQuestion.id, value)}
-      //     />
-      //   );
-
-      // case QuestionType.UploadFile:
-      //   return (
-      //     <UploadFileQuestionComponent
-      //       question={currentQuestion}
-      //       value={responses[currentQuestion.id] || []}
-      //       onChange={(value) => handleResponseChange(currentQuestion.id, value)}
-      //     />
-      //   );
-
-      // case QuestionType.NetPromoterScore:
-      //   return (
-      //     <NetPromoterScoreQuestionComponent
-      //       question={currentQuestion}
-      //       value={responses[currentQuestion.id] || 0}
-      //       onChange={(value) => handleResponseChange(currentQuestion.id, value)}
-      //     />
-      //   );
-
-      
       default:
         return (
           <div className="py-4 text-gray-500 italic">
@@ -258,14 +263,21 @@ export default function TakeTest({ params }: { params: { testId: string } }) {
             <CardContent>
               <div className="space-y-8">
                 {questions.map((question, index) => {
-                  if (question.type === QuestionType.Section) return null;
+                  if (question.type === QuestionType.Section) {
+                    return (
+                      <div key={question.id} className="border-b pb-4 last:border-b-0 last:pb-0">
+                        <h3 className="font-medium mb-2">{question.title}</h3>
+                        {question.description && <p className="text-gray-600">{question.description}</p>}
+                      </div>
+                    );
+                  }
                   
                   let responseDisplay = "Not answered";
                   const response = responses[question.id];
                   
                   if (response !== undefined) {
                     if (question.type === QuestionType.Choice) {
-                      if (Array.isArray(response)) {
+                      if ((question as any).allowMultiple && Array.isArray(response)) {
                         const options = (question as any).options;
                         responseDisplay = response.map(id => 
                           options.find((opt: any) => opt.id === id)?.text
@@ -275,6 +287,24 @@ export default function TakeTest({ params }: { params: { testId: string } }) {
                         const option = options.find((opt: any) => opt.id === response);
                         responseDisplay = option?.text || "Invalid response";
                       }
+                    } else if (question.type === QuestionType.Rating || question.type === QuestionType.NetPromoterScore) {
+                      responseDisplay = `Rating: ${response}`;
+                    } else if (question.type === QuestionType.Ranking && Array.isArray(response)) {
+                      const options = (question as any).options;
+                      responseDisplay = response.map((id, index) => {
+                        const option = options.find((opt: any) => opt.id === id);
+                        return `${index + 1}. ${option?.text || 'Unknown'}`;
+                      }).join("\n");
+                    } else if (question.type === QuestionType.Likert && typeof response === 'object') {
+                      const statements = (question as any).statements;
+                      const scale = (question as any).scale;
+                      responseDisplay = Object.entries(response).map(([stmtId, scaleId]) => {
+                        const statement = statements.find((s: any) => s.id === stmtId)?.text || 'Unknown';
+                        const scaleValue = scale.find((s: any) => s.id === scaleId)?.text || 'Unknown';
+                        return `${statement}: ${scaleValue}`;
+                      }).join("\n");
+                    } else if (question.type === QuestionType.UploadFile && response) {
+                      responseDisplay = `File: ${response.name || 'Uploaded file'}`;
                     } else if (typeof response === "string") {
                       responseDisplay = response;
                     } else if (typeof response === "number") {
@@ -298,7 +328,7 @@ export default function TakeTest({ params }: { params: { testId: string } }) {
                           Edit
                         </button>
                       </div>
-                      <p className="text-gray-700">{responseDisplay}</p>
+                      <p className="text-gray-700 whitespace-pre-line">{responseDisplay}</p>
                     </div>
                   );
                 })}
@@ -381,284 +411,4 @@ export default function TakeTest({ params }: { params: { testId: string } }) {
     </main>
   );
 }
-
-// Question Components
-function ChoiceQuestionComponent({
-  question,
-  value,
-  onChange,
-}: {
-  question: any;
-  value: any;
-  onChange: (value: any) => void;
-}) {
-  const handleSingleChoice = (optionId: string) => {
-    onChange(optionId);
-  };
-
-  const handleMultipleChoice = (optionId: string) => {
-    if (Array.isArray(value)) {
-      if (value.includes(optionId)) {
-        onChange(value.filter((id) => id !== optionId));
-      } else {
-        onChange([...value, optionId]);
-      }
-    } else {
-      onChange([optionId]);
-    }
-  };
-
-  return (
-    <div className="space-y-3 pt-2">
-      {question.options.map((option: any) => (
-        <div key={option.id} className="flex items-center">
-          <input
-            type={question.allowMultiple ? "checkbox" : "radio"}
-            id={option.id}
-            name={question.id}
-            checked={
-              question.allowMultiple
-                ? Array.isArray(value) && value.includes(option.id)
-                : value === option.id
-            }
-            onChange={() =>
-              question.allowMultiple
-                ? handleMultipleChoice(option.id)
-                : handleSingleChoice(option.id)
-            }
-            className="mr-3 h-4 w-4"
-          />
-          <label htmlFor={option.id} className="text-gray-700">
-            {option.text}
-          </label>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function TextQuestionComponent({
-  question,
-  value,
-  onChange,
-}: {
-  question: any;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <div className="pt-2">
-      <textarea
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={question.placeholder || "Type your answer here..."}
-        maxLength={question.maxLength}
-        rows={4}
-        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-      />
-      {question.maxLength && (
-        <div className="text-right text-sm text-gray-500 mt-1">
-          {value.length}/{question.maxLength} characters
-        </div>
-      )}
-    </div>
-  );
-}
-
-function RatingQuestionComponent({
-  question,
-  value,
-  onChange,
-}: {
-  question: any;
-  value: number;
-  onChange: (value: number) => void;
-}) {
-  return (
-    <div className="pt-4">
-      <div className="flex flex-col items-center">
-        <div className="flex items-center justify-between w-full mb-2">
-          {question.labels?.start && (
-            <span className="text-sm text-gray-500">{question.labels.start}</span>
-          )}
-          {question.labels?.end && (
-            <span className="text-sm text-gray-500">{question.labels.end}</span>
-          )}
-        </div>
-        
-        <div className="flex space-x-2 mt-2">
-          {Array.from({ length: question.maxRating }).map((_, index) => {
-            const rating = index + 1;
-            return (
-              <button
-                key={rating}
-                type="button"
-                onClick={() => onChange(rating)}
-                className={`h-10 w-10 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
-                  value >= rating
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                {rating}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function DateQuestionComponent({
-  question,
-  value,
-  onChange,
-}: {
-  question: any;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <div className="pt-2">
-      <input
-        type={question.includeTime ? "datetime-local" : "date"}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-      />
-    </div>
-  );
-}
-
-function SectionComponent({
-  question,
-}: {
-  question: any;
-}) {
-  return (
-    <div className="pt-2">
-      {question.description && (
-        <p className="text-gray-600">{question.description}</p>
-      )}
-    </div>
-  );
-} 
-
-// function RankingQuestionComponent({
-//   question,
-//   value,
-//   onChange,
-// }: {
-//   question: any;
-//   value: any;
-//   onChange: (value: any) => void;
-// }) {
-//   return (
-//     <div className="pt-4">
-//       <div className="flex flex-col items-center">
-//         {question.options.map((option: any) => (
-//           <div key={option.id} className="flex items-center">
-//             <input
-//               type="radio"
-//               id={option.id}
-//               name={question.id}  
-//               checked={value === option.id}
-//               onChange={() => onChange(option.id)}
-//               className="mr-3 h-4 w-4"
-//             />
-//             <label htmlFor={option.id} className="text-gray-700">
-//               {option.text}
-//             </label>
-//           </div>
-//         ))}
-//       </div>
-//     </div>
-//   );
-// }
-
-// function LikertQuestionComponent({
-//   question,
-//   value,
-//   onChange,
-// }: {
-//   question: any;
-//   value: any;
-//   onChange: (value: any) => void;
-// }) {
-//   return (
-//     <div className="pt-4">
-//       <div className="flex flex-col items-center">  
-//         {question.statements.map((statement: any) => (
-//           <div key={statement.id} className="flex items-center">
-//             <input
-//               type="radio"
-//               id={statement.id}
-//               name={question.id}    
-//               checked={value === statement.id}
-//               onChange={() => onChange(statement.id)}
-//               className="mr-3 h-4 w-4"
-//             />
-//             <label htmlFor={statement.id} className="text-gray-700">
-//               {statement.text}  
-//             </label>
-//           </div>
-//         ))}
-//       </div>
-//     </div>
-//   );
-// } 
-
-// function UploadFileQuestionComponent({
-//   question,
-//   value,
-//   onChange,
-// }: {
-//   question: any;
-//   value: any;
-//   onChange: (value: any) => void;
-// }) {
-//   return (
-//     <div className="pt-4">
-//       <div className="flex flex-col items-center">
-//         <input
-//           type="file"
-//           id={question.id}
-//           name={question.id}
-//           onChange={(e) => onChange(e.target.files?.[0])}
-//           className="hidden"
-//         />
-//         <label htmlFor={question.id} className="text-blue-600 hover:text-blue-800 cursor-pointer">
-//           {value ? value.name : "Upload File"}
-//         </label>
-//       </div>
-//     </div>
-//   );
-// }
-
-// function NetPromoterScoreQuestionComponent({
-//   question,
-//   value,
-//   onChange,
-// }: {
-//   question: any;
-//   value: number;
-//   onChange: (value: number) => void;
-// }) {
-//   return (
-//     <div className="pt-4">
-//       <div className="flex flex-col items-center">
-//         {question.labels?.start && (
-//           <span className="text-sm text-gray-500">{question.labels.start}</span>
-//         )}
-//         {question.labels?.end && (
-//           <span className="text-sm text-gray-500">{question.labels.end}</span>
-//         )}
-//       </div>
-//     </div>
-//   );
-// }
-
-
-
 
