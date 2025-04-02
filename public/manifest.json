@@ -6,7 +6,8 @@
     "display": "standalone",
     "orientation": "any",
     "scope": "/",
-    "start_url": "/",
+    "start_url": "/?source=pwa",
+    "id": "/",
     "icons": [
       {
         "src": "icons/icon-192.png",
@@ -23,5 +24,16 @@
         "type": "image/png",
         "sizes": "512x512"
       }
-    ]
-  }
+    ],
+    "shortcuts": [
+      {
+        "name": "Dashboard",
+        "short_name": "Dashboard",
+        "description": "View test analytics",
+        "url": "/dashboard?source=shortcut",
+        "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+      }
+    ],
+    "related_applications": [],
+    "prefer_related_applications": false
+}

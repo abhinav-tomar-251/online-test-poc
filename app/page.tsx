@@ -5,20 +5,64 @@ import Link from "next/link";
 import { useTestStore } from "@/app/shared/lib/store";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./shared/components/ui/Card";
 import { Button } from "./shared/components/ui/Button";
-import { openDashboardInPWA, isPWA, isPWAInstalled } from "./shared/lib/pwa";
+import { openDashboardInPWA, isPWA } from "./shared/lib/pwa";
 
 export default function Home() {
   const { tests, setActiveTest } = useTestStore();
-  const [isAppInstalled, setIsAppInstalled] = useState(false);
+  const [isPWAInstalled, setIsPWAInstalled] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   useEffect(() => {
     setActiveTest(null);
-    // Check if PWA is installed
-    setIsAppInstalled(isPWAInstalled());
+    
+    // Listen for the beforeinstallprompt event
+    window.addEventListener('beforeinstallprompt', (e) => {
+      // Prevent the mini-infobar from appearing on mobile
+      e.preventDefault();
+      // Stash the event so it can be triggered later
+      setDeferredPrompt(e);
+    });
+    
+    // Check if already installed
+    if (isPWA()) {
+      setIsPWAInstalled(true);
+    } else {
+      // Also check for display-mode
+      const mediaQuery = window.matchMedia('(display-mode: standalone)');
+      setIsPWAInstalled(mediaQuery.matches);
+      
+      // Listen for changes
+      mediaQuery.addEventListener('change', (e) => {
+        setIsPWAInstalled(e.matches);
+      });
+    }
   }, [setActiveTest]);
 
   const handleOpenDashboard = () => {
     openDashboardInPWA();
+  };
+  
+  const handleInstallClick = () => {
+    if (!deferredPrompt) {
+      // If we can't install via the API, open the dashboard anyway
+      window.location.href = '/dashboard';
+      return;
+    }
+    
+    // Show the install prompt
+    deferredPrompt.prompt();
+    
+    // Wait for the user to respond to the prompt
+    deferredPrompt.userChoice.then((choiceResult: any) => {
+      if (choiceResult.outcome === 'accepted') {
+        console.log('User accepted the install prompt');
+        setIsPWAInstalled(true);
+      } else {
+        console.log('User dismissed the install prompt');
+      }
+      // Clear the saved prompt
+      setDeferredPrompt(null);
+    });
   };
 
   return (
@@ -37,10 +81,10 @@ export default function Home() {
             <Button 
               variant="outline" 
               size="lg" 
-              onClick={handleOpenDashboard}
+              onClick={isPWAInstalled ? handleOpenDashboard : handleInstallClick}
               className="bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200"
             >
-              {isAppInstalled ? "Open Dashboard in App" : "Install App"}
+              {isPWAInstalled ? "Open in App" : "Install App"}
             </Button>
           )}
         </div>
