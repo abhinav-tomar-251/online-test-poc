@@ -7,22 +7,37 @@
  * If the PWA is not installed, it will open in the browser
  */
 export function openDashboardInPWA() {
-  // Check if we're in a browser environment
-  if (typeof window !== 'undefined') {
-    // Try to open in PWA first
-    const pwaUrl = `pwa://dashboard`;
-    window.location.href = pwaUrl;
+  if (typeof window === 'undefined') return;
+
+  // Check if the app is installed
+  if (isPWAInstalled()) {
+    // Use the app's URL to open in PWA
+    const appUrl = window.location.origin + '/dashboard';
+    window.location.href = appUrl;
     
-    // Fallback to web URL after a short delay if PWA doesn't handle it
-    setTimeout(() => {
-      if (document.hidden) {
-        // If the page is hidden, it means the PWA handled the URL
-        return;
-      }
-      // Fallback to web URL
-      window.location.href = '/dashboard';
-    }, 100);
+    // If we're in a browser, try to open the PWA
+    if (!isPWA()) {
+      // This will trigger the PWA to open if installed
+      window.open(appUrl, '_blank', 'noopener,noreferrer');
+    }
+  } else {
+    // If not installed, open the web version
+    window.location.href = '/dashboard';
   }
+}
+
+/**
+ * Checks if the PWA is installed on the device
+ */
+export function isPWAInstalled(): boolean {
+  if (typeof window === 'undefined') return false;
+  
+  // Check if the app is installed by checking display mode
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    (window.navigator as any).standalone ||
+    document.referrer.includes('android-app://')
+  );
 }
 
 /**

@@ -1,18 +1,25 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useTestStore } from "@/app/shared/lib/store";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./shared/components/ui/Card";
 import { Button } from "./shared/components/ui/Button";
-import { openDashboardInPWA, isPWA } from "./shared/lib/pwa";
+import { openDashboardInPWA, isPWA, isPWAInstalled } from "./shared/lib/pwa";
 
 export default function Home() {
   const { tests, setActiveTest } = useTestStore();
+  const [isAppInstalled, setIsAppInstalled] = useState(false);
 
   useEffect(() => {
     setActiveTest(null);
+    // Check if PWA is installed
+    setIsAppInstalled(isPWAInstalled());
   }, [setActiveTest]);
+
+  const handleOpenDashboard = () => {
+    openDashboardInPWA();
+  };
 
   return (
     <main className="container mx-auto py-10 px-4 sm:px-6 lg:px-8 min-h-screen">
@@ -30,10 +37,10 @@ export default function Home() {
             <Button 
               variant="outline" 
               size="lg" 
-              onClick={openDashboardInPWA}
+              onClick={handleOpenDashboard}
               className="bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200"
             >
-              Open Dashboard in App
+              {isAppInstalled ? "Open Dashboard in App" : "Install App"}
             </Button>
           )}
         </div>
