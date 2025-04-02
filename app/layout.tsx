@@ -1,10 +1,6 @@
-"use client";
-import { Suspense, useEffect } from "react";
-import { Metadata, Viewport } from "next";
-import { getRedirectRoute, isPWA } from "./shared/lib/pwa";
-import { useRouter } from "next/navigation";
-import "./globals.css";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -56,30 +52,8 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Suspense fallback={null}>
-          <PWARedirectHandler />
-        </Suspense>
         {children}
       </body>
     </html>
   );
-}
-
-// Component to handle PWA deep links
-function PWARedirectHandler() {
-  const router = useRouter();
-  
-  useEffect(() => {
-    // Only run in PWA mode
-    if (isPWA()) {
-      // Check if there's a redirect route
-      const redirectRoute = getRedirectRoute();
-      if (redirectRoute) {
-        // Navigate to the route
-        router.push(redirectRoute);
-      }
-    }
-  }, [router]);
-  
-  return null;
 }
