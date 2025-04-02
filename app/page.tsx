@@ -26,7 +26,7 @@ export default function Home() {
           <Link href="/dashboard">
             <Button variant="outline" size="lg">View Analytics</Button>
           </Link>
-          {isPWA() && (
+          {!isPWA() && (
             <Button 
               variant="outline" 
               size="lg" 
