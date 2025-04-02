@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { useTestStore, QuestionType } from "@/app/shared/lib/store";
 import { Button } from "@/app/shared/components/ui/Button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/app/shared/components/ui/Card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/app/shared/components/ui/Card";
 import renderQuestionPreview from "../component/RenderQuestionPreview";
 import * as React from "react";
 

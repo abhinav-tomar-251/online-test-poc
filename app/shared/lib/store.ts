@@ -20,7 +20,7 @@ export interface BaseQuestion {
   type: QuestionType;
   title: string;
   required: boolean;
-  score?: number; // Maximum score for this question
+  score?: number; 
 }
 
 export interface ChoiceQuestion extends BaseQuestion {

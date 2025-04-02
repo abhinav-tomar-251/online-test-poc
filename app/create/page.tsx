@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useTestStore, QuestionType } from "@/app/shared/lib/store";
+import { useTestStore } from "@/app/shared/lib/store";
 import { Button } from "../shared/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "../shared/components/ui/Card";
 import QuestionTypeCard from "./component/QuestionTypeCard";

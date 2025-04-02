@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useTestStore } from "@/app/shared/lib/store";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./shared/components/ui/Card";
 import { Button } from "./shared/components/ui/Button";
+import { openDashboardInPWA, isPWA } from "./shared/lib/pwa";
 
 export default function Home() {
   const { tests, setActiveTest } = useTestStore();
@@ -18,10 +19,23 @@ export default function Home() {
       <header className="mb-10">
         <h1 className="text-3xl font-bold mb-2">Online Test Assessment Platform</h1>
         <p className="text-gray-600 mb-6">Create and take online assessments with ease</p>
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-4">
           <Link href="/create">
             <Button variant="primary" size="lg">Create New Test</Button>
           </Link>
+          <Link href="/dashboard">
+            <Button variant="outline" size="lg">View Analytics</Button>
+          </Link>
+          {isPWA() && (
+            <Button 
+              variant="outline" 
+              size="lg" 
+              onClick={openDashboardInPWA}
+              className="bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200"
+            >
+              Open Dashboard in App
+            </Button>
+          )}
         </div>
       </header>
 

@@ -3,28 +3,72 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useTestStore, QuestionType, Question } from "@/app/shared/lib/store";
+import { useTestStore, QuestionType } from "@/app/shared/lib/store";
 import { Button } from "@/app/shared/components/ui/Button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/app/shared/components/ui/Card";
-import { DndContext, DragEndEvent } from "@dnd-kit/core";
-import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { DndContext, DragEndEvent, useSensors, useSensor, PointerSensor, DragOverlay, DragStartEvent, useDroppable } from "@dnd-kit/core";
+import { SortableContext, arrayMove, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import SortableQuestionItem from "../component/SortableQuestionItem";
 import QuestionTypeButton from "../component/QuestionTypeButton";
 import QuestionEditModal from "../component/QuestionEditModal";
 import * as React from "react";
 
+
+// Component for the drag overlay
+function QuestionTypeOverlay({ title, icon }: { title: string; icon: string }) {
+  return (
+    <div className="border rounded-lg p-4 bg-white shadow-md opacity-90 w-64">
+      <div className="flex items-center">
+        <span className="text-2xl mr-3">{icon}</span>
+        <h3 className="font-medium">{title}</h3>
+      </div>
+    </div>
+  );
+}
+
+// DropArea component to handle drop zone
+function DropArea({ children, id }: { children: React.ReactNode, id: string }) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: id
+  });
+
+  return (
+    <div 
+      ref={setNodeRef}
+      style={{ 
+        touchAction: 'none',
+        position: 'relative',
+      }}
+      className={`bg-gray-50 rounded-lg p-4 sm:p-6 min-h-[300px] sm:min-h-[500px] relative 
+        ${isOver ? 'bg-blue-50 border-2 border-blue-300' : 'border-2 border-dashed border-gray-200'}`}
+    >
+      {children}
+    </div>
+  );
+}
+
 export default function EditTest({ params }: { params: any }) {
-  const router = useRouter();
   const unwrappedParams = React.use(params) as { testId: string };
   const testId = unwrappedParams.testId;
-  const { tests, activeTest, setActiveTest, updateTest, addQuestion, deleteQuestion, updateQuestion, reorderQuestions } = useTestStore();
+  const {activeTest, setActiveTest, updateTest, addQuestion, deleteQuestion, reorderQuestions } = useTestStore();
   const [showQuestionTypeModal, setShowQuestionTypeModal] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<string | null>(null);
   const [editingTestDetails, setEditingTestDetails] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeDragType, setActiveDragType] = useState<QuestionType | null>(null);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
+
+  // Configure DndKit sensors with higher activation constraint for more reliable dragging
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 10,
+      },
+    })
+  );
 
   useEffect(() => {
-    setActiveTest(testId);
+    setActiveTest(testId); 
     return () => setActiveTest(null);
   }, [testId, setActiveTest]);
 
@@ -140,15 +184,97 @@ export default function EditTest({ params }: { params: any }) {
     }
   };
 
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    setActiveId(active.id as string);
+    
+    console.log('DragStart - Active ID:', active.id);
+    
+    // Extract the question type from the ID
+    if (typeof active.id === 'string' && active.id.startsWith('question-type-')) {
+      const typeString = active.id.replace('question-type-', '');
+      console.log('Extracted type string:', typeString);
+      
+      // Set active drag type directly
+      setActiveDragType(typeString as QuestionType);
+    }
+  };
+
+  const handleDragOver = (event: any) => {
+    const { over } = event;
+    console.log('DragOver - Over ID:', over?.id);
+    
+    // Check if we're over the drop area
+    const isOverDropArea = over?.id === 'questions-drop-area';
+    console.log('Is over drop area:', isOverDropArea);
+    
+    setIsDraggingOver(isOverDropArea);
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     
-    if (over && active.id !== over.id) {
-      const oldIndex = activeTest.questions.findIndex(q => q.id === active.id);
-      const newIndex = activeTest.questions.findIndex(q => q.id === over.id);
-      
-      const newQuestions = arrayMove(activeTest.questions, oldIndex, newIndex);
-      reorderQuestions(testId, newQuestions.map(q => q.id));
+    console.log('DragEnd - Active ID:', active.id);
+    console.log('DragEnd - Over ID:', over?.id);
+    
+    try {
+      // Check if dropped on questions container
+      if (over && over.id === 'questions-drop-area' && typeof active.id === 'string' && active.id.startsWith('question-type-')) {
+        const typeString = active.id.replace('question-type-', '');
+        console.log('Adding question of type:', typeString);
+        
+        // Add the question directly based on the drag ID
+        handleAddQuestion(typeString as QuestionType);
+      }
+      // Check for reordering questions
+      else if (over && active.id !== over.id && typeof active.id === 'string' && !active.id.startsWith('question-type-')) {
+        const oldIndex = activeTest.questions.findIndex(q => q.id === active.id);
+        const newIndex = activeTest.questions.findIndex(q => q.id === over.id);
+        
+        if (oldIndex !== -1 && newIndex !== -1) {
+          console.log(`Reordering from ${oldIndex} to ${newIndex}`);
+          const newQuestions = arrayMove(activeTest.questions, oldIndex, newIndex);
+          reorderQuestions(testId, newQuestions.map(q => q.id));
+        }
+      }
+    } catch (error) {
+      console.log('Error in drag end:', error);
+    }
+    
+    setActiveId(null);
+    setActiveDragType(null);
+    setIsDraggingOver(false);
+  };
+
+  // Get an icon for a question type
+  const getQuestionTypeIcon = (type: QuestionType): string => {
+    switch (type) {
+      case QuestionType.Choice: return "◉";
+      case QuestionType.Text: return "✏️";
+      case QuestionType.Rating: return "★";
+      case QuestionType.Date: return "📅";
+      case QuestionType.Ranking: return "↕️";
+      case QuestionType.Likert: return "⚖️";
+      case QuestionType.UploadFile: return "📎";
+      case QuestionType.NetPromoterScore: return "📊";
+      case QuestionType.Section: return "📑";
+      default: return "❓";
+    }
+  };
+
+  // Get title for a question type
+  const getQuestionTypeTitle = (type: QuestionType): string => {
+    switch (type) {
+      case QuestionType.Choice: return "Choice";
+      case QuestionType.Text: return "Text";
+      case QuestionType.Rating: return "Rating";
+      case QuestionType.Date: return "Date";
+      case QuestionType.Ranking: return "Ranking";
+      case QuestionType.Likert: return "Likert";
+      case QuestionType.UploadFile: return "Upload File";
+      case QuestionType.NetPromoterScore: return "Net Promoter Score";
+      case QuestionType.Section: return "Section";
+      default: return "Unknown";
     }
   };
 
@@ -171,204 +297,244 @@ export default function EditTest({ params }: { params: any }) {
           </Link>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-6 justify-between h-full">
-          {/* Question Type Selection */}
-          <aside className="w-full lg:w-1/3 order-2 lg:order-1">
-            <div className="mb-6 lg:mb-0 lg:sticky lg:top-4"> 
-              {/* Button For Mobile View */}
-              <div className="lg:hidden">
-                <Button 
-                  variant="primary" 
-                  className="w-full sm:w-auto mb-6"
-                  onClick={() => setShowQuestionTypeModal(true)}
-                >
-                  Add Question
-                </Button>
-              </div>
-              
-              {/* Desktop Sidebar */}
-              <div className="hidden lg:block">
-                <h3 className="text-lg sm:text-xl font-semibold mb-4">Add Question</h3>
-                <div className="grid grid-cols-1 gap-3 max-h-[calc(100vh-200px)] overflow-y-auto">
-                  <QuestionTypeButton 
-                    title="Choice"
-                    description="Single or multiple choice questions"
-                    icon="◉"
-                    onClick={() => handleAddQuestion(QuestionType.Choice)}
-                  />
-                  <QuestionTypeButton 
-                    title="Text"
-                    description="Free-form text responses"
-                    icon="✏️"
-                    onClick={() => handleAddQuestion(QuestionType.Text)}
-                  />
-                  <QuestionTypeButton 
-                    title="Rating"
-                    description="Scale-based ratings"
-                    icon="★"
-                    onClick={() => handleAddQuestion(QuestionType.Rating)}
-                  />
-                  <QuestionTypeButton 
-                    title="Date"
-                    description="Date and time selection"
-                    icon="📅"
-                    onClick={() => handleAddQuestion(QuestionType.Date)}
-                  />
-                  <QuestionTypeButton 
-                    title="Ranking"
-                    description="Ordering items by preference"
-                    icon="↕️"
-                    onClick={() => handleAddQuestion(QuestionType.Ranking)}
-                  />
-                  <QuestionTypeButton 
-                    title="Likert"
-                    description="Agreement scale questions"
-                    icon="⚖️"
-                    onClick={() => handleAddQuestion(QuestionType.Likert)}
-                  />
-                  <QuestionTypeButton 
-                    title="Upload File"
-                    description="File upload responses"
-                    icon="📎"
-                    onClick={() => handleAddQuestion(QuestionType.UploadFile)}
-                  />
-                  <QuestionTypeButton 
-                    title="Net Promoter Score"
-                    description="Measure customer loyalty"
-                    icon="📊"
-                    onClick={() => handleAddQuestion(QuestionType.NetPromoterScore)}
-                  />
-                  <QuestionTypeButton 
-                    title="Section"
-                    description="Organize questions into groups"
-                    icon="📑"
-                    onClick={() => handleAddQuestion(QuestionType.Section)}
-                  />
-                </div>
-              </div>
-              
-              {/* Mobile Modal */}
-              {showQuestionTypeModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 lg:hidden">
-                  <div className="bg-white rounded-lg max-w-3xl w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg sm:text-xl font-semibold">Select Question Type</h3>
-                      <button 
-                        onClick={() => setShowQuestionTypeModal(false)}
-                        className="text-gray-500 hover:text-gray-700"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M18 6 6 18" />
-                          <path d="m6 6 12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                      <QuestionTypeButton 
-                        title="Choice"
-                        description="Single or multiple choice questions"
-                        icon="◉"
-                        onClick={() => handleAddQuestion(QuestionType.Choice)}
-                      />
-                      <QuestionTypeButton 
-                        title="Text"
-                        description="Free-form text responses"
-                        icon="✏️"
-                        onClick={() => handleAddQuestion(QuestionType.Text)}
-                      />
-                      <QuestionTypeButton 
-                        title="Rating"
-                        description="Scale-based ratings"
-                        icon="★"
-                        onClick={() => handleAddQuestion(QuestionType.Rating)}
-                      />
-                      <QuestionTypeButton 
-                        title="Date"
-                        description="Date and time selection"
-                        icon="📅"
-                        onClick={() => handleAddQuestion(QuestionType.Date)}
-                      />
-                      <QuestionTypeButton 
-                        title="Ranking"
-                        description="Ordering items by preference"
-                        icon="↕️"
-                        onClick={() => handleAddQuestion(QuestionType.Ranking)}
-                      />
-                      <QuestionTypeButton 
-                        title="Likert"
-                        description="Agreement scale questions"
-                        icon="⚖️"
-                        onClick={() => handleAddQuestion(QuestionType.Likert)}
-                      />
-                      <QuestionTypeButton 
-                        title="Upload File"
-                        description="File upload responses"
-                        icon="📎"
-                        onClick={() => handleAddQuestion(QuestionType.UploadFile)}
-                      />
-                      <QuestionTypeButton 
-                        title="Net Promoter Score"
-                        description="Measure customer loyalty"
-                        icon="📊"
-                        onClick={() => handleAddQuestion(QuestionType.NetPromoterScore)}
-                      />
-                      <QuestionTypeButton 
-                        title="Section"
-                        description="Organize questions into groups"
-                        icon="📑"
-                        onClick={() => handleAddQuestion(QuestionType.Section)}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </aside>
-          
-          <div className="flex-1 order-1 lg:order-2">
-            {/* Simplified Test Details Card */}
-            <div className="mb-6 sm:mb-8">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle>{activeTest.title || "Untitled Test"}</CardTitle>
-                    {activeTest.description && (
-                      <p className="text-sm text-gray-500 mt-1">{activeTest.description}</p>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => setEditingTestDetails(true)}
-                    className="p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-50 rounded"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-                      <path d="m15 5 4 4" />
-                    </svg>
-                  </button>
-                </CardHeader>
-              </Card>
-            </div>
-
-            {/* Questions View Section */}
-            <div className="bg-gray-600 rounded-lg p-4 sm:p-6 min-h-[300px] sm:min-h-[500px]">
-              {activeTest.questions.length === 0 ? (
-                <div className="text-center py-8 sm:py-12 bg-gray-50 rounded-lg">
-                  <h3 className="text-lg sm:text-xl font-medium text-gray-500">No questions yet</h3>
-                  <p className="text-gray-400 mt-2 mb-4">Add your first question to get started</p>
+        <DndContext 
+          sensors={sensors} 
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="flex flex-col lg:flex-row gap-6 justify-between h-full">
+            {/* Question Type Selection */}
+            <aside className="w-full lg:w-1/3 order-2 lg:order-1">
+              <div className="mb-6 lg:mb-0 lg:sticky lg:top-4"> 
+                {/* Button For Mobile View */}
+                <div className="lg:hidden">
                   <Button 
                     variant="primary" 
+                    className="w-full sm:w-auto mb-6"
                     onClick={() => setShowQuestionTypeModal(true)}
-                    className="w-full sm:w-auto lg:hidden"
                   >
                     Add Question
                   </Button>
-                  <div className="hidden lg:block">
-                    <p className="text-sm text-gray-500">Use the question types panel on the left to add questions</p>
+                </div>
+                
+                {/* Desktop Sidebar */}
+                <div className="hidden lg:block">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg sm:text-xl font-semibold">Add Question</h3>
+                    <div className="text-sm text-gray-500">
+                      <span className="flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
+                          <path d="M14 17H4a2 2 0 0 1-2-2V5c0-1.1.9-2 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-2" />
+                          <path d="M14 22l5-5-5-5" />
+                        </svg>
+                        Click or drag
+                      </span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 max-h-[calc(100vh-200px)] overflow-y-auto">
+                    <QuestionTypeButton 
+                      title="Choice"
+                      description="Single or multiple choice questions"
+                      icon="◉"
+                      onClick={() => handleAddQuestion(QuestionType.Choice)}
+                      dragId={`question-type-${QuestionType.Choice}`}
+                      isDraggable={true}
+                    />
+                    <QuestionTypeButton 
+                      title="Text"
+                      description="Free-form text responses"
+                      icon="✏️"
+                      onClick={() => handleAddQuestion(QuestionType.Text)}
+                      dragId={`question-type-${QuestionType.Text}`}
+                      isDraggable={true}
+                    />
+                    <QuestionTypeButton 
+                      title="Rating"
+                      description="Scale-based ratings"
+                      icon="★"
+                      onClick={() => handleAddQuestion(QuestionType.Rating)}
+                      dragId={`question-type-${QuestionType.Rating}`}
+                      isDraggable={true}
+                    />
+                    <QuestionTypeButton 
+                      title="Date"
+                      description="Date and time selection"
+                      icon="📅"
+                      onClick={() => handleAddQuestion(QuestionType.Date)}
+                      dragId={`question-type-${QuestionType.Date}`}
+                      isDraggable={true}
+                    />
+                    <QuestionTypeButton 
+                      title="Ranking"
+                      description="Ordering items by preference"
+                      icon="↕️"
+                      onClick={() => handleAddQuestion(QuestionType.Ranking)}
+                      dragId={`question-type-${QuestionType.Ranking}`}
+                      isDraggable={true}
+                    />
+                    <QuestionTypeButton 
+                      title="Likert"
+                      description="Agreement scale questions"
+                      icon="⚖️"
+                      onClick={() => handleAddQuestion(QuestionType.Likert)}
+                      dragId={`question-type-${QuestionType.Likert}`}
+                      isDraggable={true}
+                    />
+                    <QuestionTypeButton 
+                      title="Upload File"
+                      description="File upload responses"
+                      icon="📎"
+                      onClick={() => handleAddQuestion(QuestionType.UploadFile)}
+                      dragId={`question-type-${QuestionType.UploadFile}`}
+                      isDraggable={true}
+                    />
+                    <QuestionTypeButton 
+                      title="Net Promoter Score"
+                      description="Measure customer loyalty"
+                      icon="📊"
+                      onClick={() => handleAddQuestion(QuestionType.NetPromoterScore)}
+                      dragId={`question-type-${QuestionType.NetPromoterScore}`}
+                      isDraggable={true}
+                    />
+                    <QuestionTypeButton 
+                      title="Section"
+                      description="Organize questions into groups"
+                      icon="📑"
+                      onClick={() => handleAddQuestion(QuestionType.Section)}
+                      dragId={`question-type-${QuestionType.Section}`}
+                      isDraggable={true}
+                    />
                   </div>
                 </div>
-              ) : (
-                <DndContext onDragEnd={handleDragEnd}>
+                
+                {/* Mobile Modal */}
+                {showQuestionTypeModal && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 lg:hidden">
+                    <div className="bg-white rounded-lg max-w-3xl w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg sm:text-xl font-semibold">Select Question Type</h3>
+                        <button 
+                          onClick={() => setShowQuestionTypeModal(false)}
+                          className="text-gray-500 hover:text-gray-700"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M18 6 6 18" />
+                            <path d="m6 6 12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                        <QuestionTypeButton 
+                          title="Choice"
+                          description="Single or multiple choice questions"
+                          icon="◉"
+                          onClick={() => handleAddQuestion(QuestionType.Choice)}
+                        />
+                        <QuestionTypeButton 
+                          title="Text"
+                          description="Free-form text responses"
+                          icon="✏️"
+                          onClick={() => handleAddQuestion(QuestionType.Text)}
+                        />
+                        <QuestionTypeButton 
+                          title="Rating"
+                          description="Scale-based ratings"
+                          icon="★"
+                          onClick={() => handleAddQuestion(QuestionType.Rating)}
+                        />
+                        <QuestionTypeButton 
+                          title="Date"
+                          description="Date and time selection"
+                          icon="📅"
+                          onClick={() => handleAddQuestion(QuestionType.Date)}
+                        />
+                        <QuestionTypeButton 
+                          title="Ranking"
+                          description="Ordering items by preference"
+                          icon="↕️"
+                          onClick={() => handleAddQuestion(QuestionType.Ranking)}
+                        />
+                        <QuestionTypeButton 
+                          title="Likert"
+                          description="Agreement scale questions"
+                          icon="⚖️"
+                          onClick={() => handleAddQuestion(QuestionType.Likert)}
+                        />
+                        <QuestionTypeButton 
+                          title="Upload File"
+                          description="File upload responses"
+                          icon="📎"
+                          onClick={() => handleAddQuestion(QuestionType.UploadFile)}
+                        />
+                        <QuestionTypeButton 
+                          title="Net Promoter Score"
+                          description="Measure customer loyalty"
+                          icon="📊"
+                          onClick={() => handleAddQuestion(QuestionType.NetPromoterScore)}
+                        />
+                        <QuestionTypeButton 
+                          title="Section"
+                          description="Organize questions into groups"
+                          icon="📑"
+                          onClick={() => handleAddQuestion(QuestionType.Section)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </aside>
+            
+            <div className="flex-1 order-1 lg:order-2">
+              {/* Simplified Test Details Card */}
+              <div className="mb-6 sm:mb-8">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                      <CardTitle>{activeTest.title || "Untitled Test"}</CardTitle>
+                      {activeTest.description && (
+                        <p className="text-sm text-gray-500 mt-1">{activeTest.description}</p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => setEditingTestDetails(true)}
+                      className="p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-50 rounded"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                        <path d="m15 5 4 4" />
+                      </svg>
+                    </button>
+                  </CardHeader>
+                </Card>
+              </div>
+
+              {/* Questions View Section */}
+              <DropArea id="questions-drop-area">
+                {activeTest.questions.length === 0 ? (
+                  <div className="text-center py-8 sm:py-12 bg-transparent rounded-lg">
+                    <h3 className="text-lg sm:text-xl font-medium text-gray-500">No questions yet</h3>
+                    <p className="text-gray-400 mt-2 mb-4">Add your first question to get started</p>
+                    <Button 
+                      variant="primary" 
+                      onClick={() => setShowQuestionTypeModal(true)}
+                      className="w-full sm:w-auto lg:hidden"
+                    >
+                      Add Question
+                    </Button>
+                    <div className="hidden lg:block">
+                      <p className="text-sm text-gray-500 mb-2">Click a question type or drag it into this area</p>
+                      <div className="flex justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400">
+                          <path d="M14 17H4a2 2 0 0 1-2-2V5c0-1.1.9-2 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-2" />
+                          <path d="M14 22l5-5-5-5" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
                   <SortableContext 
                     items={activeTest.questions.map(q => q.id)} 
                     strategy={verticalListSortingStrategy}
@@ -384,11 +550,36 @@ export default function EditTest({ params }: { params: any }) {
                       ))}
                     </div>
                   </SortableContext>
-                </DndContext>
-              )}
+                )}
+
+                {/* Drop zone indicator when dragging question type */}
+                {activeDragType !== null && (
+                  <div className="absolute inset-0 border-4 border-dashed border-blue-500 bg-blue-50 bg-opacity-50 rounded-lg flex items-center justify-center z-10">
+                    <div className="bg-white p-5 rounded-md shadow-lg">
+                      <h3 className="text-lg font-bold text-blue-600 flex items-center">
+                        <span className="text-2xl mr-2">{getQuestionTypeIcon(activeDragType)}</span>
+                        Drop to add {getQuestionTypeTitle(activeDragType)}
+                      </h3>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Release to add this question type
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </DropArea>
             </div>
           </div>
-        </div>
+
+          {/* Drag Overlay */}
+          <DragOverlay>
+            {activeId && activeDragType !== null && (
+              <QuestionTypeOverlay 
+                title={getQuestionTypeTitle(activeDragType)} 
+                icon={getQuestionTypeIcon(activeDragType)} 
+              />
+            )}
+          </DragOverlay>
+        </DndContext>
       
       {/* Test Details Edit Modal */}
       {editingTestDetails && (
