@@ -27,9 +27,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center py-2">
-      <main className="flex w-full flex-1 flex-col items-center justify-center px-4 sm:px-20">
-        <div className="w-full max-w-md space-y-8">
+    <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center p-4">
+      <main className="w-full max-w-md">
+        <div className="w-full space-y-8">
           <div>
             <h1 className="text-center text-4xl font-bold tracking-tight">
               Login

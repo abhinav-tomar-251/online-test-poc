@@ -10,7 +10,6 @@ import SummaryMetrics from "./components/SummaryMetrics";
 import TestCompletionsChart from "./components/TestCompletionsChart";
 import ScoreDistributionChart from "./components/ScoreDistributionChart";
 import TestPerformanceTable from "./components/TestPerformanceTable";
-import Navigation from "@/app/shared/components/Navigation";
 import ProtectedRoute from "@/app/shared/components/ProtectedRoute";
 import { useAuth } from "@/app/shared/lib/authContext";
 
@@ -63,35 +62,37 @@ export default function Dashboard() {
   // If no tests available, show a placeholder dashboard
   if (tests.length === 0) {
     return (
-      <main className="container mx-auto pt-20 px-4 sm:px-6 lg:px-8 min-h-screen">
-        <header className="mb-10">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">Analytics Dashboard</h1>
-              <p className="text-gray-600">View performance metrics and test analytics</p>
+      <ProtectedRoute>
+        <main className="container mx-auto py-10 px-4 sm:px-6 lg:px-8 min-h-screen">
+          <header className="mb-10">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h1 className="text-3xl font-bold mb-2">Analytics Dashboard</h1>
+                <p className="text-gray-600">View performance metrics and test analytics</p>
+              </div>
+              <Link href="/">
+                <Button variant="outline" size="sm">
+                  Return Home
+                </Button>
+              </Link>
             </div>
-            <Link href="/">
-              <Button variant="outline" size="sm">
-                Return Home
-              </Button>
+          </header>
+
+          <div className="text-center py-12 bg-gray-50 rounded-lg">
+            <h3 className="text-xl font-medium text-gray-500">No tests available</h3>
+            <p className="text-gray-400 mt-2 mb-4">Create your first test to see analytics</p>
+            <Link href="/create">
+              <Button variant="primary">Create New Test</Button>
             </Link>
           </div>
-        </header>
-
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <h3 className="text-xl font-medium text-gray-500">No tests available</h3>
-          <p className="text-gray-400 mt-2 mb-4">Create your first test to see analytics</p>
-          <Link href="/create">
-            <Button variant="primary">Create New Test</Button>
-          </Link>
-        </div>
-      </main>
+        </main>
+      </ProtectedRoute>
     );
   }
 
   return (
     <ProtectedRoute>
-      <main className="container mx-auto pt-20 px-4 sm:px-6 lg:px-8 min-h-screen">
+      <main className="container mx-auto py-10 px-4 sm:px-6 lg:px-8 min-h-screen">
         <header className="mb-10">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mb-4">
             <div>

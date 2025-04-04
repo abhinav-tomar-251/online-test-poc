@@ -206,7 +206,7 @@ export default function TakeTest({ params }: { params: any }) {
     const scorePercentage = hasScore ? Math.round((response.totalScore! / response.maxPossibleScore!) * 100) : 0;
     
     return (
-      <main className="container mx-auto pt-20 px-4 sm:px-6 lg:px-8 min-h-screen">
+      <main className="container mx-auto py-10 px-4 sm:px-6 lg:px-8 min-h-screen">
         <div className="max-w-3xl mx-auto">
           <Card>
             <CardHeader>
@@ -275,7 +275,7 @@ export default function TakeTest({ params }: { params: any }) {
 
   if (showSummary) {
     return (
-      <main className="container mx-auto pt-20 px-4 sm:px-6 lg:px-8 min-h-screen">
+      <main className="container mx-auto py-10 px-4 sm:px-6 lg:px-8 min-h-screen">
         <div className="max-w-3xl mx-auto">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center">

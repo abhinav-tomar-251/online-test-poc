@@ -52,12 +52,14 @@ export default function RootLayout({
         <link rel="icon" href="/icons/icon-512.png" />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen`}
       >
         <AuthProvider>
           <Navigation />
-          {children}
-          </AuthProvider>
+          <div className="pt-16 min-h-screen">
+            {children}
+          </div>
+        </AuthProvider>
       </body>
     </html>
   );
