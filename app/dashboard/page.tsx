@@ -10,9 +10,13 @@ import SummaryMetrics from "./components/SummaryMetrics";
 import TestCompletionsChart from "./components/TestCompletionsChart";
 import ScoreDistributionChart from "./components/ScoreDistributionChart";
 import TestPerformanceTable from "./components/TestPerformanceTable";
+import Navigation from "@/app/shared/components/Navigation";
+import ProtectedRoute from "@/app/shared/components/ProtectedRoute";
+import { useAuth } from "@/app/shared/lib/authContext";
 
 export default function Dashboard() {
   const { tests, responses, getResponsesForTest } = useTestStore();
+  const { user } = useAuth();
   const [analytics, setAnalytics] = useState({
     totalTests: 0,
     totalCompletions: 0,
@@ -59,7 +63,7 @@ export default function Dashboard() {
   // If no tests available, show a placeholder dashboard
   if (tests.length === 0) {
     return (
-      <main className="container mx-auto py-10 px-4 sm:px-6 lg:px-8 min-h-screen">
+      <main className="container mx-auto pt-20 px-4 sm:px-6 lg:px-8 min-h-screen">
         <header className="mb-10">
           <div className="flex justify-between items-center mb-4">
             <div>
@@ -86,82 +90,86 @@ export default function Dashboard() {
   }
 
   return (
-    <main className="container mx-auto py-10 px-4 sm:px-6 lg:px-8 min-h-screen">
-      <header className="mb-10">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mb-4">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">Analytics Dashboard</h1>
-            <p className="text-gray-600">View performance metrics and test analytics</p>
+    <ProtectedRoute>
+      <main className="container mx-auto pt-20 px-4 sm:px-6 lg:px-8 min-h-screen">
+        <header className="mb-10">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mb-4">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">Analytics Dashboard</h1>
+              <p className="text-gray-600">
+                Welcome, {user?.name} - View your performance metrics and test analytics
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <Link href="/create">
+                <Button variant="primary" size="sm">
+                  Create Test
+                </Button>
+              </Link>
+              <Link href="/">
+                <Button variant="outline" size="sm">
+                  Return Home
+                </Button>
+              </Link>
+            </div>
           </div>
-          <div className="flex gap-3">
-            <Link href="/create">
-              <Button variant="primary" size="sm">
-                Create Test
-              </Button>
-            </Link>
-            <Link href="/">
-              <Button variant="outline" size="sm">
-                Return Home
-              </Button>
-            </Link>
-          </div>
+        </header>
+
+        {/* Summary Metrics */}
+        <SummaryMetrics analytics={analytics} />
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+          {/* Test Completions Chart */}
+          <Card className="shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle>Test Completions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80">
+                <TestCompletionsChart tests={tests} responses={responses} />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Score Distribution Chart */}
+          <Card className="shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle>Score Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80">
+                <ScoreDistributionChart responses={responses} />
+              </div>
+            </CardContent>
+          </Card>
         </div>
-      </header>
 
-      {/* Summary Metrics */}
-      <SummaryMetrics analytics={analytics} />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+          {/* Question Type Analysis */}
+          <Card className="shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle>Question Type Usage</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80">
+                <QuestionTypeAnalysis tests={tests} />
+              </div>
+            </CardContent>
+          </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
-        {/* Test Completions Chart */}
-        <Card className="shadow-sm">
+          {/* For future expansion - maybe add a heat map or another chart here */}
+        </div>
+        
+        {/* Test Performance Table */}
+        <Card className="shadow-sm mb-10">
           <CardHeader className="pb-2">
-            <CardTitle>Test Completions</CardTitle>
+            <CardTitle>Test Performance</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-80">
-              <TestCompletionsChart tests={tests} responses={responses} />
-            </div>
+            <TestPerformanceTable tests={tests} responses={responses} />
           </CardContent>
         </Card>
-
-        {/* Score Distribution Chart */}
-        <Card className="shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle>Score Distribution</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80">
-              <ScoreDistributionChart responses={responses} />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
-        {/* Question Type Analysis */}
-        <Card className="shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle>Question Type Usage</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80">
-              <QuestionTypeAnalysis tests={tests} />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* For future expansion - maybe add a heat map or another chart here */}
-      </div>
-      
-      {/* Test Performance Table */}
-      <Card className="shadow-sm mb-10">
-        <CardHeader className="pb-2">
-          <CardTitle>Test Performance</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <TestPerformanceTable tests={tests} responses={responses} />
-        </CardContent>
-      </Card>
-    </main>
+      </main>
+    </ProtectedRoute>
   );
 } 

@@ -29,7 +29,7 @@ export default function CreateTest() {
   
   return (
     <>
-      <main className="container mx-auto py-6 sm:py-10 px-4 sm:px-6 lg:px-8 min-h-screen">
+      <main className="container mx-auto pt-20 px-4 sm:px-6 lg:px-8 min-h-screen">
         <div className="flex items-start mb-6 sm:mb-10">
           <Link href="/">
             <Button variant="ghost" size="sm">

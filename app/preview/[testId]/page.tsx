@@ -20,7 +20,7 @@ export default function PreviewTest({ params }: { params: any }) {
 
   if (!activeTest) {
     return (
-      <main className="container mx-auto py-10 px-4 sm:px-6 lg:px-8 min-h-screen">
+      <main className="container mx-auto pt-20 px-4 sm:px-6 lg:px-8 min-h-screen">
         <div className="text-center py-12">
           <h2 className="text-2xl font-medium mb-4">Test not found</h2>
           <p className="text-gray-500 mb-8">The test you're trying to preview doesn't exist.</p>
@@ -33,7 +33,7 @@ export default function PreviewTest({ params }: { params: any }) {
   }
 
   return (
-    <main className="container mx-auto py-10 px-4 sm:px-6 lg:px-8 min-h-screen">
+    <main className="container mx-auto pt-20 px-4 sm:px-6 lg:px-8 min-h-screen">
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center">

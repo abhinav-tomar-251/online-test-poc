@@ -74,7 +74,7 @@ export default function EditTest({ params }: { params: any }) {
 
   if (!activeTest) {
     return (
-      <main className="container mx-auto py-6 sm:py-10 px-4 sm:px-6 lg:px-8 min-h-screen">
+      <main className="container mx-auto pt-20 px-4 sm:px-6 lg:px-8 min-h-screen">
         <div className="text-center py-12">
           <h2 className="text-2xl font-medium mb-4">Test not found</h2>
           <p className="text-gray-500 mb-8">The test you're trying to edit doesn't exist.</p>
@@ -279,7 +279,7 @@ export default function EditTest({ params }: { params: any }) {
   };
 
   return (
-    <main className="container mx-auto py-6 sm:py-10 px-4 sm:px-6 lg:px-8 min-h-screen">
+    <main className="container mx-auto pt-20 px-4 sm:px-6 lg:px-8 min-h-screen">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-6 sm:mb-8 gap-4 sm:gap-0">
           <div className="flex items-center">
             <Link href="/">
